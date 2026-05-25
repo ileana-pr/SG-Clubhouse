@@ -1,0 +1,69 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "SG Clubhouse 3",
+    "description": "Empty Scene Template",
+    "favicon": "favicon_asset",
+    "navmapThumbnail": "assets/scene/Images/Explorer_4_19_2026_6_38_41_PM.png"
+  },
+  "owner": "",
+  "contact": {
+    "name": "adigitaltati",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "education",
+    "social"
+  ],
+  "scene": {
+    "base": "-134,-9",
+    "parcels": [
+      "-134,-9"
+    ]
+  },
+  "spawnPoints": [
+    {
+      "name": "SpawnArea1",
+      "default": true,
+      "position": {
+        "x": [
+          12,
+          14
+        ],
+        "y": [
+          0.11999999731779099,
+          0.11999999731779099
+        ],
+        "z": [
+          1,
+          3
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [
+    "ALLOW_TO_TRIGGER_AVATAR_EMOTE",
+    "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE"
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled",
+    "nearbyVoiceChat": "enabled"
+  },
+  "creator": "",
+  "skyboxConfig": {
+    "fixedTime": 43200
+  },
+  "source": {
+    "origin": "creator-hub",
+    "projectId": "7e576211-6083-4b53-8a0b-3ed0050d7d73"
+  },
+  "rating": "T"
+}

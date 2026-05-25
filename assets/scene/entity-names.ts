@@ -1,0 +1,45 @@
+// Auto-generated entity names from the scene
+
+
+/**
+ * Object containing all entity names in the scene for autocomplete support.
+ */
+export enum EntityNames {
+  Admin_Tools = "Admin Tools",
+  Beach_Umbrella = "Beach Umbrella",
+  Dandelion_7 = "Dandelion_7",
+  Fruit_Kiosk = "Fruit Kiosk",
+  Garden_Bed_18 = "Garden Bed_18",
+  Garden_Bed_19 = "Garden Bed_19",
+  Ground = "Ground",
+  Light_Green_Sycamore_Tree = "Light Green Sycamore Tree",
+  Mountain_Ragweed_4 = "Mountain Ragweed_4",
+  Outdoor_Chair = "Outdoor Chair",
+  Pumpkin_Leaf_35 = "Pumpkin Leaf_35",
+  Pumpkin_Leaf_36 = "Pumpkin Leaf_36",
+  Sit_Spot = "Sit Spot",
+  Soil_22 = "Soil_22",
+  Soil_23 = "Soil_23",
+  Tile_1 = "Tile 1",
+  Tomato = "Tomato",
+  Tomato_10 = "Tomato_10",
+  Tomato_11 = "Tomato_11",
+  Tomato_12 = "Tomato_12",
+  Tomato_13 = "Tomato_13",
+  Tomato_14 = "Tomato_14",
+  Tomato_15 = "Tomato_15",
+  Tomato_16 = "Tomato_16",
+  Tomato_17 = "Tomato_17",
+  Tomato_18 = "Tomato_18",
+  Tomato_19 = "Tomato_19",
+  Tomato_20 = "Tomato_20",
+  Tomato_21 = "Tomato_21",
+  Tomato_3 = "Tomato_3",
+  Tomato_4 = "Tomato_4",
+  Tomato_5 = "Tomato_5",
+  Tomato_6 = "Tomato_6",
+  Tomato_7 = "Tomato_7",
+  Tomato_8 = "Tomato_8",
+  Tomato_9 = "Tomato_9",
+  Video_Screen = "Video Screen",
+} 
