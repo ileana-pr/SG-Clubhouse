@@ -54,7 +54,7 @@ function startLobbyCountdown() {
 
     for (const [entity] of engine.getEntitiesWith(HotPotatoState)) {
         const state = HotPotatoState.getMutable(entity)
-        
+
         // Add starting player to lobby if not already there
         const list = state.lobbyPlayers ? state.lobbyPlayers.split(",").filter(Boolean) : []
         if (!list.includes(localPlayer.userId)) {
@@ -64,7 +64,7 @@ function startLobbyCountdown() {
 
         // Transition to phase 1 (Lobby Countdown Phase) and set countdown timer to 30s
         state.gamePhase = 1
-        state.countdownTimer = 30.0
+        state.countdownTimer = 15.0
         console.log(`[Hot Potato UI] Started lobby countdown. Lobby players: ${state.lobbyPlayers}`)
         break
     }

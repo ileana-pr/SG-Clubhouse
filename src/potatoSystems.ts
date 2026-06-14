@@ -106,8 +106,9 @@ export function potatoGameLoopSystem(dt: number) {
           state.potatoHolderId = lobbyList[randomIndex]
           state.activePlayers = state.lobbyPlayers
           state.lobbyPlayers = "" // Clear lobby for the active match
-          // Set a random round duration between 15 and 45 seconds
-          state.roundTimer = 15.0 + Math.random() * 30.0
+          // Set a random round duration between 30s and 3 minutes — hidden from players
+          state.roundTimer = 30.0 + Math.random() * 150.0
+          state.initialRoundTimer = state.roundTimer  // snapshot for heat ramp calculation
           state.graceTimer = 0
           state.lastHolderId = ''
           state.gamePhase = 2 // Transition to active game phase
@@ -147,9 +148,18 @@ export function potatoGameLoopSystem(dt: number) {
         }
       }
 
-      // Proximity tagging check
+      // Proximity tagging check — skipped if holder is outside the scene parcel bounds
+      // (they hold the potato until they return in-bounds or it explodes on them)
       const holderPos = getPlayerPosition(state.potatoHolderId)
-      if (holderPos) {
+      const holderInBounds = holderPos &&
+          holderPos.x >= 0 && holderPos.x <= 16 &&
+          holderPos.z >= 0 && holderPos.z <= 16
+
+      if (!holderInBounds) {
+          console.log(`[Hot Potato] ${getPlayerName(state.potatoHolderId)} is out of bounds — potato locked!`)
+      }
+
+      if (holderPos && holderInBounds) {
         for (const playerAddress of matchPlayers) {
           // Make sure the target player is still in the scene
           if (!activePlayers.includes(playerAddress)) continue

@@ -1,20 +1,20 @@
-import { 
-  engine, 
-  Entity,
-  Transform, 
-  Name, 
-  pointerEventsSystem, 
-  InputAction, 
-  GltfContainer, 
-  VideoPlayer, 
-  MeshRenderer, 
-  Material, 
-  AvatarAttach, 
-  AvatarAnchorPointType,
-  MeshCollider,
-  MaterialTransparencyMode,
-  TextShape,
-  TextAlignMode
+import {
+    engine,
+    Entity,
+    Transform,
+    Name,
+    pointerEventsSystem,
+    InputAction,
+    GltfContainer,
+    VideoPlayer,
+    MeshRenderer,
+    Material,
+    AvatarAttach,
+    AvatarAnchorPointType,
+    MeshCollider,
+    MaterialTransparencyMode,
+    TextShape,
+    TextAlignMode
 } from '@dcl/sdk/ecs'
 import { Quaternion, Vector3, Color4 } from '@dcl/sdk/math'
 import { movePlayerTo, triggerEmote } from '~system/RestrictedActions'
@@ -27,78 +27,7 @@ import { getPlayer } from '@dcl/sdk/src/players'
 const scoreNameEntities: any[][] = []
 const scoreValEntities: any[][] = []
 
-const boundaryWalls: Entity[] = []
 
-function createInvisibleBoundaryWalls() {
-    const wallThickness = 0.2 // Thinner to fit comfortably inside parcel boundaries
-    const wallHeight = 10.0  // High enough to prevent any jumping over
-    
-    // South Wall (Z=0.25)
-    const south = engine.addEntity()
-    Transform.create(south, {
-        position: Vector3.create(8, wallHeight / 2, 0.25),
-        scale: Vector3.create(16, wallHeight, wallThickness)
-    })
-    boundaryWalls.push(south)
-
-    // North Wall (Z=15.75)
-    const north = engine.addEntity()
-    Transform.create(north, {
-        position: Vector3.create(8, wallHeight / 2, 15.75),
-        scale: Vector3.create(16, wallHeight, wallThickness)
-    })
-    boundaryWalls.push(north)
-
-    // West Wall (X=0.25)
-    const west = engine.addEntity()
-    Transform.create(west, {
-        position: Vector3.create(0.25, wallHeight / 2, 8),
-        scale: Vector3.create(wallThickness, wallHeight, 16)
-    })
-    boundaryWalls.push(west)
-
-    // East Wall (X=15.75)
-    const east = engine.addEntity()
-    Transform.create(east, {
-        position: Vector3.create(15.75, wallHeight / 2, 8),
-        scale: Vector3.create(wallThickness, wallHeight, 16)
-    })
-    boundaryWalls.push(east)
-}
-
-function localBoundarySystem(dt: number) {
-    let stateEntity = null
-    for (const [entity] of engine.getEntitiesWith(HotPotatoState)) {
-        stateEntity = entity
-        break
-    }
-    if (!stateEntity) return
-
-    const state = HotPotatoState.get(stateEntity)
-    const localPlayer = getPlayer()
-    if (!localPlayer || !localPlayer.userId) return
-
-    const activeList = state.activePlayers ? state.activePlayers.split(",").filter(Boolean) : []
-    const lobbyList = state.lobbyPlayers ? state.lobbyPlayers.split(",").filter(Boolean) : []
-
-    let shouldHaveCollider = false
-    if (state.gamePhase === 2) {
-        // Phase 2: active match. Is player in active match?
-        shouldHaveCollider = activeList.includes(localPlayer.userId)
-    } else if (state.gamePhase === 1) {
-        // Phase 1: countdown. Is player in lobby list?
-        shouldHaveCollider = lobbyList.includes(localPlayer.userId)
-    }
-
-    for (const wall of boundaryWalls) {
-        const hasCollider = MeshCollider.has(wall)
-        if (shouldHaveCollider && !hasCollider) {
-            MeshCollider.setBox(wall)
-        } else if (!shouldHaveCollider && hasCollider) {
-            MeshCollider.deleteFrom(wall)
-        }
-    }
-}
 
 function createFence() {
     // Helper to perform linear interpolation of Vector3
@@ -133,12 +62,12 @@ function createFence() {
             const midX = (p1.x + p2.x) / 2
             const midY = 0.7
             const midZ = (p1.z + p2.z) / 2
-            
+
             const dx = p2.x - p1.x
             const dz = p2.z - p1.z
             const distance = Math.sqrt(dx * dx + dz * dz)
             const angle = Math.atan2(dx, dz)
-            
+
             Transform.create(panel, {
                 position: Vector3.create(midX, midY, midZ),
                 scale: Vector3.create(0.05, 1.2, distance - 0.15), // slightly shorter to avoid clipping posts
@@ -166,17 +95,17 @@ function createFence() {
 
     for (let i = 0; i < 4; i++) {
         const start = corners[i]
-        const end = corners[i+1]
+        const end = corners[i + 1]
         const segments = 8
         for (let j = 0; j < segments; j++) {
             const t1 = j / segments
             const t2 = (j + 1) / segments
             const p1 = lerpVector3(start, end, t1)
             const p2 = lerpVector3(start, end, t2)
-            
+
             let spawnPanel = true
             let spawnPost = true
-            
+
             if (i === 1) { // East side
                 if (j === 3) {
                     spawnPanel = false
@@ -185,45 +114,230 @@ function createFence() {
                     spawnPost = false
                 }
             }
-            
+
             spawnFenceSegment(p1, p2, spawnPanel, spawnPost)
         }
     }
 }
 
 function createParkour() {
+    const GLB = 'assets/asset-packs/potatoes/potato.glb'
+
     const steps = [
-        // A starter step on the ground in the back-left corner (North-West)
-        { modelSrc: 'assets/asset-packs/tomato/FoodTomato_01/FoodTomato_01.glb', pos: Vector3.create(2.5, 0.5, 12.2), scale: Vector3.create(2.2, 2.2, 2.2), rot: Quaternion.fromEulerDegrees(0, 0, 0) },
-        // Floating steps spiraling up from the ground level
-        { modelSrc: 'assets/asset-packs/watermelon/FoodWatermelon_01/FoodWatermelon_01.glb', pos: Vector3.create(1.4, 1.4, 13.0), scale: Vector3.create(2.0, 2.0, 2.0), rot: Quaternion.fromEulerDegrees(10, 45, 0) },
-        { modelSrc: 'assets/asset-packs/pineapple/FoodPineapple_01/FoodPineapple_01.glb', pos: Vector3.create(1.5, 2.4, 14.3), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(0, 90, 0) },
-        { modelSrc: 'assets/asset-packs/tomato/FoodTomato_01/FoodTomato_01.glb', pos: Vector3.create(2.7, 3.4, 15.0), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(-10, 0, 15) },
-        { modelSrc: 'assets/asset-packs/watermelon/FoodWatermelon_01/FoodWatermelon_01.glb', pos: Vector3.create(4.0, 4.4, 14.8), scale: Vector3.create(2.0, 2.0, 2.0), rot: Quaternion.fromEulerDegrees(0, 180, -10) },
-        { modelSrc: 'assets/asset-packs/pineapple/FoodPineapple_01/FoodPineapple_01.glb', pos: Vector3.create(4.8, 5.4, 13.6), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(15, 0, 5) },
-        { modelSrc: 'assets/asset-packs/tomato/FoodTomato_01/FoodTomato_01.glb', pos: Vector3.create(4.5, 6.4, 12.3), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(0, -45, 0) },
-        { modelSrc: 'assets/asset-packs/watermelon/FoodWatermelon_01/FoodWatermelon_01.glb', pos: Vector3.create(3.3, 7.4, 11.8), scale: Vector3.create(2.0, 2.0, 2.0), rot: Quaternion.fromEulerDegrees(-5, 30, 10) },
-        { modelSrc: 'assets/asset-packs/pineapple/FoodPineapple_01/FoodPineapple_01.glb', pos: Vector3.create(2.0, 8.4, 12.2), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(0, 120, 0) },
-        { modelSrc: 'assets/asset-packs/tomato/FoodTomato_01/FoodTomato_01.glb', pos: Vector3.create(1.2, 9.4, 13.5), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(5, -90, -5) },
-        { modelSrc: 'assets/asset-packs/watermelon/FoodWatermelon_01/FoodWatermelon_01.glb', pos: Vector3.create(2.5, 10.4, 14.5), scale: Vector3.create(2.5, 2.5, 2.5), rot: Quaternion.fromEulerDegrees(0, 0, 0) },
-        // Peak platform: A giant slice of watermelon to stand on at 11.4m height in the North-West corner
-        { modelSrc: 'assets/asset-packs/watermelon/FoodWatermelon_01/FoodWatermelon_01.glb', pos: Vector3.create(3.8, 11.4, 13.5), scale: Vector3.create(3.5, 3.5, 3.5), rot: Quaternion.fromEulerDegrees(0, 0, 0) }
+        // ---- SUMMIT (y 16.0 → 11.5) ----
+        { x: 7.0, y: 16.0, z: 12.0, s: 1.60, rx: -5, ry: 20, rz: 0 },  // #01 y=16.0  North upper
+        { x: 14.0, y: 14.5, z: 5.0, s: 1.50, rx: 0, ry: -45, rz: 5 },  // #02 y=14.5  SE upper
+        { x: 2.0, y: 13.5, z: 7.0, s: 1.40, rx: 0, ry: 90, rz: 0 },  // #03 y=13.5  West upper
+        { x: 13.0, y: 12.5, z: 12.0, s: 1.30, rx: -5, ry: -60, rz: 5 },  // #04 y=12.5  NE upper
+        { x: 4.0, y: 11.5, z: 4.0, s: 1.20, rx: 5, ry: 30, rz: -5 },  // #05 y=11.5  SW upper
+
+        // ---- TOP (y 10.0 → 7.3) ----
+        { x: 8.0, y: 10.0, z: 2.0, s: 2.00, rx: 0, ry: 0, rz: 0 },  // #06 y=10.0  Center apex
+        { x: 12.0, y: 9.7, z: 13.0, s: 1.80, rx: -5, ry: -45, rz: 0 },  // #07 y=9.7   NE apex
+        { x: 5.0, y: 9.3, z: 13.5, s: 1.50, rx: 0, ry: 45, rz: 0 },  // #08 y=9.3   NW apex
+        { x: 1.0, y: 8.3, z: 10.0, s: 0.90, rx: 5, ry: 120, rz: 0 },  // #09 y=8.3   West very high
+        { x: 4.0, y: 7.7, z: 1.5, s: 1.00, rx: 0, ry: 30, rz: -5 },  // #10 y=7.7   South high
+        { x: 12.0, y: 7.3, z: 2.0, s: 1.10, rx: 0, ry: -40, rz: 5 },  // #11 y=7.3   SE high
+
+        // ---- HIGH (y 6.3 → 4.0) ----
+        { x: 3.5, y: 6.3, z: 8.0, s: 1.10, rx: 0, ry: 50, rz: -8 },  // #12 y=6.3   West high
+        { x: 9.0, y: 6.3, z: 8.0, s: 1.35, rx: 0, ry: 20, rz: -5 },  // #13 y=6.3   East high
+        { x: 8.0, y: 5.0, z: 11.0, s: 0.50, rx: -5, ry: 15, rz: 7 },  // #14 y=5.0   North mid
+        { x: 8.0, y: 4.0, z: 15.0, s: 0.85, rx: 0, ry: 180, rz: 0 },  // #15 y=4.0   North edge
+
+        // ---- MID (y 3.7 → 2.0) ----
+        { x: 10.0, y: 3.7, z: 5.5, s: 0.45, rx: 0, ry: -60, rz: -7 },  // #16 y=3.7   Mid east
+        { x: 5.5, y: 3.2, z: 10.0, s: 1.15, rx: 0, ry: 70, rz: 0 },  // #17 y=3.2   Center mid-air
+        { x: 1.5, y: 2.8, z: 9.5, s: 0.45, rx: -4, ry: 165, rz: 5 },  // #18 y=2.8   West mid
+        { x: 14.5, y: 2.3, z: 14.5, s: 0.50, rx: -5, ry: -150, rz: 5 },  // #19 y=2.3   NE corner
+        { x: 6.0, y: 2.0, z: 8.0, s: 0.85, rx: 0, ry: -10, rz: 0 },  // #20 y=2.0   Center
+
+        // ---- LOW (y 1.7 → 0.3) ----
+        { x: 10.5, y: 1.7, z: 8.5, s: 0.40, rx: 5, ry: 80, rz: -5 },  // #21 y=1.7   Mid east
+        { x: 1.0, y: 1.3, z: 14.5, s: 0.45, rx: 0, ry: 150, rz: 0 },  // #22 y=1.3   NW corner
+        { x: 13.0, y: 0.8, z: 5.5, s: 0.38, rx: 0, ry: 55, rz: 0 },  // #23 y=0.8   East low
+        { x: 1.0, y: 0.7, z: 1.0, s: 0.35, rx: 0, ry: 45, rz: -5 },  // #24 y=0.7   SW corner
+        { x: 14.5, y: 0.7, z: 1.0, s: 0.40, rx: 0, ry: -30, rz: 5 },  // #25 y=0.7   SE corner
+        { x: 10.0, y: 0.5, z: 11.0, s: 2.00, rx: 0, ry: -80, rz: 0 },  // #26 y=0.5   NE floor massive
+        { x: 2.5, y: 0.3, z: 2.5, s: 0.35, rx: 0, ry: 30, rz: 5 },  // #27 y=0.3   SW ground
     ]
+
 
     steps.forEach((step) => {
         const veggie = engine.addEntity()
         Transform.create(veggie, {
-            position: step.pos,
-            rotation: step.rot,
-            scale: step.scale
+            position: Vector3.create(step.x, step.y, step.z),
+            rotation: Quaternion.fromEulerDegrees(step.rx, step.ry, step.rz),
+            scale: Vector3.create(step.s, step.s, step.s)
         })
         GltfContainer.create(veggie, {
-            src: step.modelSrc,
-            visibleMeshesCollisionMask: 3, // physics and pointer interaction enabled
+            src: GLB,
+            visibleMeshesCollisionMask: 3,
             invisibleMeshesCollisionMask: 3
         })
     })
 }
+
+
+
+
+function createElevator() {
+    const ELEV_X = 14.0
+    const ELEV_Z = 7.5
+    const ELEV_BOTTOM = 0.0    // potato base Y at ground
+    const ELEV_TOP = 15.5      // potato base Y at top — just below summit at y=16.0
+    const POTATO_HEIGHT = 0.5  // model top surface height at scale 0.5
+
+    // ---- Giant potato — this IS the elevator platform ----
+    const platform = engine.addEntity()
+    Transform.create(platform, {
+        position: Vector3.create(ELEV_X, ELEV_BOTTOM, ELEV_Z),
+        scale: Vector3.create(0.5, 0.5, 0.5)
+    })
+    GltfContainer.create(platform, {
+        src: 'assets/asset-packs/potatoes/potato.glb',
+        visibleMeshesCollisionMask: 3,   // solid — players can stand on it
+        invisibleMeshesCollisionMask: 3
+    })
+
+    // =====================================================
+    // ELEVATOR CALL STATIONS — East fence plane (x=15.75)
+    // Sign boards flush with fence, buttons on inward face
+    // =====================================================
+
+    // --- BOTTOM CALL STATION ---
+    const signBottom = engine.addEntity()
+    Transform.create(signBottom, {
+        position: Vector3.create(15.75, POTATO_HEIGHT + 1.6, ELEV_Z),
+        scale: Vector3.create(0.08, 1.5, 2.0)  // thin slab, 1.5m tall × 2m wide
+    })
+    MeshRenderer.setBox(signBottom)
+    Material.setPbrMaterial(signBottom, {
+        albedoColor: Color4.fromHexString('#3B1F08'),  // dark wood
+        roughness: 0.85,
+        metallic: 0.05,
+        emissiveColor: Color4.fromHexString('#5C3010'),
+        emissiveIntensity: 0.3
+    })
+    // Sign title — rotated 90° around Y to face inward (West)
+    const signTitleBottom = engine.addEntity()
+    Transform.create(signTitleBottom, {
+        position: Vector3.create(15.65, POTATO_HEIGHT + 1.95, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+    })
+    TextShape.create(signTitleBottom, {
+        text: '🥔 POTATO LIFT',
+        fontSize: 1.3,
+        textColor: Color4.fromHexString('#FFEE44'),
+        textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+    // Call button
+    const btnUp = engine.addEntity()
+    Transform.create(btnUp, {
+        position: Vector3.create(15.65, POTATO_HEIGHT + 1.5, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 0, 90),
+        scale: Vector3.create(0.09, 0.09, 0.09)
+    })
+    GltfContainer.create(btnUp, {
+        src: 'assets/asset-packs/potatoes/potato.glb',
+        visibleMeshesCollisionMask: 3,
+        invisibleMeshesCollisionMask: 3
+    })
+    // Arrow label — rotated 90° around Y to face inward (West)
+    const signArrowBottom = engine.addEntity()
+    Transform.create(signArrowBottom, {
+        position: Vector3.create(15.65, POTATO_HEIGHT + 1.1, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+    })
+    TextShape.create(signArrowBottom, {
+        text: '⬆  Press to Teleport Up',
+        fontSize: 1.2,
+        textColor: Color4.White(),
+        textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+
+    // --- TOP CALL STATION ---
+    const signTop = engine.addEntity()
+    Transform.create(signTop, {
+        position: Vector3.create(15.75, ELEV_TOP + 3.2, ELEV_Z),
+        scale: Vector3.create(0.08, 1.5, 2.0)
+    })
+    MeshRenderer.setBox(signTop)
+    Material.setPbrMaterial(signTop, {
+        albedoColor: Color4.fromHexString('#3B1F08'),
+        roughness: 0.85,
+        metallic: 0.05,
+        emissiveColor: Color4.fromHexString('#5C3010'),
+        emissiveIntensity: 0.3
+    })
+    // Sign title — rotated 90° around Y to face inward (West)
+    const signTitleTop = engine.addEntity()
+    Transform.create(signTitleTop, {
+        position: Vector3.create(15.65, ELEV_TOP + 3.55, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+    })
+    TextShape.create(signTitleTop, {
+        text: '🥔 POTATO LIFT',
+        fontSize: 1.3,
+        textColor: Color4.fromHexString('#FFEE44'),
+        textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+    // Call button
+    const btnDown = engine.addEntity()
+    Transform.create(btnDown, {
+        position: Vector3.create(15.65, ELEV_TOP + 3.2, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 0, 90),
+        scale: Vector3.create(0.09, 0.09, 0.09)
+    })
+    GltfContainer.create(btnDown, {
+        src: 'assets/asset-packs/potatoes/potato.glb',
+        visibleMeshesCollisionMask: 3,
+        invisibleMeshesCollisionMask: 3
+    })
+    // Arrow label — rotated 90° around Y to face inward (West)
+    const signArrowTop = engine.addEntity()
+    Transform.create(signArrowTop, {
+        position: Vector3.create(15.65, ELEV_TOP + 2.8, ELEV_Z),
+        rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+    })
+    TextShape.create(signArrowTop, {
+        text: '⬇  Press to Teleport Down',
+        fontSize: 1.2,
+        textColor: Color4.White(),
+        textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+    })
+
+
+    // Teleporter: instantly snap potato to destination + land player on top
+    pointerEventsSystem.onPointerDown(
+        { entity: btnUp, opts: { button: InputAction.IA_POINTER, hoverText: '🥔 Teleport Up!' } },
+        function () {
+            Transform.createOrReplace(platform, {
+                position: Vector3.create(ELEV_X, ELEV_TOP, ELEV_Z),
+                scale: Vector3.create(0.5, 0.5, 0.5)
+            })
+            void movePlayerTo({
+                newRelativePosition: Vector3.create(ELEV_X, ELEV_TOP + POTATO_HEIGHT + 0.2, ELEV_Z),
+                cameraTarget: Vector3.create(8, ELEV_TOP + 2, 8)
+            })
+        }
+    )
+
+    pointerEventsSystem.onPointerDown(
+        { entity: btnDown, opts: { button: InputAction.IA_POINTER, hoverText: '🥔 Teleport Down!' } },
+        function () {
+            Transform.createOrReplace(platform, {
+                position: Vector3.create(ELEV_X, ELEV_BOTTOM, ELEV_Z),
+                scale: Vector3.create(0.5, 0.5, 0.5)
+            })
+            void movePlayerTo({
+                newRelativePosition: Vector3.create(ELEV_X, ELEV_BOTTOM + POTATO_HEIGHT + 0.2, ELEV_Z),
+                cameraTarget: Vector3.create(8, ELEV_BOTTOM + 2, 8)
+            })
+        }
+    )
+}
+
 
 function createScoreboard() {
     // 0. Scoreboard Group to hold everything and rotate/position it together
@@ -460,7 +574,7 @@ function scoreboardSystem(dt: number) {
             const name = getPlayerName(entry.address)
             // Format name nicely: truncate if too long
             const nameFormatted = name.length > 18 ? name.slice(0, 16) + "..." : name
-            
+
             for (const ent of nameEntities) {
                 TextShape.getMutable(ent).text = `${i + 1}. ${nameFormatted}`
             }
@@ -482,171 +596,30 @@ export function main() {
     // Initialize UI from ui.tsx
     setupUi()
 
-    // Create perimeter fence to keep players from leaving
     createFence()
-    createInvisibleBoundaryWalls()
 
     // Create vertical parkour path
     createParkour()
 
+    // Create elevator in the SE corner
+    createElevator()
+
     // Create 3D Scoreboard and register update system
     createScoreboard()
     engine.addSystem(scoreboardSystem)
-    
-    // Register local boundary system to toggle collision walls for active players
-    engine.addSystem(localBoundarySystem)
 
-    // 1. Define TV center and positioning constants (aligned to elevated TV center)
-    const TV_POS = Vector3.create(8, 15.3, 0.25)
-    const TOMATO_SCALE = Vector3.create(3.9, 3.9, 3.9)
+
+
 
     for (const [entity, name] of engine.getEntitiesWith(Name)) {
-        if (name.value === 'Fruit Kiosk') {
-            Transform.createOrReplace(entity, {
-                position: Vector3.create(3.0, 0, 2.5),
-                rotation: Quaternion.fromEulerDegrees(0, 90, 1), // Turned inwards
-                scale: Vector3.create(1, 1, 1)
-            })
-        } else if (name.value === 'Beach Umbrella') {
-            Transform.createOrReplace(entity, {
-                position: Vector3.create(5.0, 0, 2.2),
-                rotation: Quaternion.fromEulerDegrees(0, 0, 0),
-                scale: Vector3.create(1, 1, 1)
-            })
-        } else if (name.value === 'Outdoor Chair') {
-            Transform.createOrReplace(entity, {
-                position: Vector3.create(4.0, 0, 2.5),
-                rotation: Quaternion.fromEulerDegrees(0, 45, 0),
-                scale: Vector3.create(1, 1, 1)
-            })
+        if (name.value === 'Fruit Kiosk' || name.value === 'Beach Umbrella' || name.value === 'Outdoor Chair') {
+            engine.removeEntityWithChildren(entity)
         } else if (name.value === 'Garden Bed_18' || name.value === 'Garden Bed_19') {
             engine.removeEntityWithChildren(entity)
         } else if (name.value === 'Video Screen') {
-            const VIDEO_DURATION = 3990 // 1 hour, 6 minutes, 30 seconds
-            const currentEpochSeconds = Math.floor(Date.now() / 1000)
-            const startPosition = currentEpochSeconds % VIDEO_DURATION
-
-            // Move the Video Screen up as high as it can go (bottom at 10.8m, top at 19.8m)
-            const transform = Transform.getMutable(entity)
-            transform.position.y = 10.8
-
-            // Set dynamic start position synced to UTC time so everyone watches at the same timestamp!
-            if (VideoPlayer.has(entity)) {
-                const video = VideoPlayer.getMutable(entity)
-                video.position = startPosition
-                video.playing = true
-                video.loop = true
-            } else {
-                VideoPlayer.create(entity, {
-                    src: 'https://pub-1471d2f09477497ab41ea533f1ff9c10.r2.dev/clubhouse_video.mp4',
-                    position: startPosition,
-                    playing: true,
-                    loop: true,
-                    volume: 1.0
-                })
-            }
-        }
-    }
-
-    // Define our refined tiered rows of tomato seats (keeping only the high rows!)
-    const rows = [
-        { radius: 12.6, height: 2.7, seats: 5, maxAngle: 22 },
-        { radius: 14.3, height: 3.8, seats: 6, maxAngle: 18 }
-    ]
-
-    // Compute all seat positions and rotations
-    const seatTransforms: { position: Vector3; rotation: Quaternion }[] = []
-
-    rows.forEach((row) => {
-        const { radius, height, seats, maxAngle } = row
-
-        for (let k = 0; k < seats; k++) {
-            // Space seats evenly between -maxAngle and +maxAngle along the arc
-            let angleDeg = 0
-            if (seats > 1) {
-                angleDeg = -maxAngle + (k * (2 * maxAngle)) / (seats - 1)
-            }
-
-            const angleRad = (angleDeg * Math.PI) / 180
-
-            // Calculate coordinates on the arc centered around the TV
-            const x = TV_POS.x + radius * Math.sin(angleRad)
-            const z = TV_POS.z + radius * Math.cos(angleRad)
-            const y = height
-
-            // Calculate rotation to face the TV directly
-            const dx = TV_POS.x - x
-            const dz = TV_POS.z - z
-            const lookAngleRad = Math.atan2(dx, dz)
-            const rotation = Quaternion.fromEulerDegrees(0, (lookAngleRad * 180) / Math.PI, 0)
-
-            seatTransforms.push({
-                position: Vector3.create(x, y, z),
-                rotation
-            })
-        }
-    })
-
-    // 2. Query all tomato entities and apply the new transforms and interactive sitting logic!
-    let tomatoIndex = 0
-    let totalTomatoCount = 0
-
-    // First count the tomatoes
-    for (const [entity, name] of engine.getEntitiesWith(Name)) {
-        if (name.value.startsWith('Tomato')) {
-            totalTomatoCount++
-        }
-    }
-    console.log(`[Tomato Seating] Successfully counted ${totalTomatoCount} total tomatoes in the scene.`)
-
-    // Position and configure them
-    for (const [entity, name] of engine.getEntitiesWith(Name)) {
-        if (name.value.startsWith('Tomato')) {
-            if (tomatoIndex < seatTransforms.length) {
-                const transform = seatTransforms[tomatoIndex]
-
-                // Position, rotate, and scale the tomato chair
-                Transform.createOrReplace(entity, {
-                    position: transform.position,
-                    rotation: transform.rotation,
-                    scale: TOMATO_SCALE
-                })
-
-                // Programmatically force both physics and pointer collision masks to 3 (solid and clickable)
-                const gltf = GltfContainer.getMutableOrNull(entity)
-                if (gltf) {
-                    gltf.visibleMeshesCollisionMask = 3 // CL_PHYSICS | CL_POINTER
-                    gltf.invisibleMeshesCollisionMask = 3
-                }
-
-                // Add an elegant click-to-sit interaction
-                pointerEventsSystem.onPointerDown(
-                    {
-                        entity: entity,
-                        opts: {
-                            button: InputAction.IA_POINTER,
-                            hoverText: 'Sit on Tomato'
-                        }
-                    },
-                    function () {
-                        // Teleport the player onto the seat and turn their camera to watch the TV
-                        void movePlayerTo({
-                            newRelativePosition: Vector3.create(transform.position.x, transform.position.y + 0.7, transform.position.z),
-                            cameraTarget: TV_POS
-                        })
-                        // Play the predefined cross-legged sitting emote
-                        void triggerEmote({ predefinedEmote: 'sittingGround1' })
-                    }
-                )
-
-                tomatoIndex++
-            } else {
-                // If there are extra tomatoes, position them safely underneath the scene to avoid clutter
-                Transform.createOrReplace(entity, {
-                    position: Vector3.create(8, -10, 8),
-                    scale: Vector3.create(0, 0, 0)
-                })
-            }
+            engine.removeEntityWithChildren(entity)
+        } else if (name.value.startsWith('Tomato')) {
+            engine.removeEntityWithChildren(entity)
         }
     }
 
@@ -667,20 +640,56 @@ export function main() {
         lobbyPlayers: '',
         blastScores: ''
     })
-    
+
     // Synchronize this state entity with all clients using custom enum ID 2009
     syncEntity(stateEntity, [HotPotatoState.componentId], 2009)
 
-    // B. Local Visual Potato Entity Creation
+    // B. Hot Potato visual — single oval entity (sphere with non-uniform scale).
+    // potatoAnchor receives AvatarAttach; potatoEntity is a child offset above the name tag.
+    const potatoAnchor = engine.addEntity()
+    Transform.create(potatoAnchor, { position: Vector3.create(8, -10, 8) })
+
     const potatoEntity = engine.addEntity()
-    MeshRenderer.setSphere(potatoEntity)
+    MeshRenderer.setSphere(potatoEntity)  // non-uniform scale makes it oval/egg-shaped
+    Transform.create(potatoEntity, {
+        parent: potatoAnchor,
+        position: Vector3.create(0, 0.1, 0),
+        scale: Vector3.Zero()
+    })
     Material.setPbrMaterial(potatoEntity, {
-        albedoColor: Color4.fromHexString("#5C4033"), // Potato brown
-        roughness: 0.9,
-        metallic: 0.1
+        albedoColor: Color4.create(1, 0.85, 0, 1),
+        emissiveColor: Color4.create(1, 0.85, 0, 1),
+        emissiveIntensity: 1.5,
+        roughness: 0.4,
+        metallic: 0.05
     })
 
-    // C. Register Game Loop System (Authoritative Host updates)
+    // C. Explosion shrapnel — 14 pre-seeded sphere chunks, all children of potatoAnchor
+    const NUM_CHUNKS = 14
+    const chunkEntities: Entity[] = []
+    const chunkDirs: { x: number; y: number; z: number }[] = []
+    const chunkSizes: number[] = []
+
+    for (let i = 0; i < NUM_CHUNKS; i++) {
+        const angle = (i / NUM_CHUNKS) * Math.PI * 2 + (Math.random() - 0.5) * 0.8
+        const radial = 0.5 + Math.random() * 0.5   // 0.5–1.0 lateral reach
+        const upward = 0.1 + Math.random() * 0.7   // 0.1–0.8 upward component
+        const chunk = engine.addEntity()
+        chunkEntities.push(chunk)
+        MeshRenderer.setSphere(chunk)
+        Transform.create(chunk, { parent: potatoAnchor, scale: Vector3.Zero() })
+        const warm = Math.random()
+        Material.setPbrMaterial(chunk, {
+            albedoColor: Color4.create(1, warm * 0.55 + 0.05, 0, 1),
+            emissiveColor: Color4.create(1, warm * 0.35, 0, 1),
+            emissiveIntensity: 1.5,
+            roughness: 0.4,
+            metallic: 0.05
+        })
+        chunkDirs.push({ x: Math.cos(angle) * radial, y: upward, z: Math.sin(angle) * radial })
+        chunkSizes.push(0.06 + Math.random() * 0.09)  // 0.06–0.15m diameter
+    }
+
     engine.addSystem(potatoGameLoopSystem)
 
     // D. Register Local Visual Presentation System (Runs on all clients)
@@ -689,83 +698,82 @@ export function main() {
 
     function potatoVisualsSystem(dt: number) {
         const state = HotPotatoState.get(stateEntity)
-        
+
         // Spin potato visual
         let spinSpeed = 100
         if (state.gamePhase === 2) {
-            // Spin faster as timer counts down
-            spinSpeed = 100 + (30 - Math.min(30, state.roundTimer)) * 12
+            // Spin faster proportionally as the round winds down
+            const elapsed = (state.initialRoundTimer || 60) - state.roundTimer
+            const progress = elapsed / (state.initialRoundTimer || 60)  // 0.0 at start, 1.0 at end
+            spinSpeed = 100 + progress * 300  // 100 rpm → 400 rpm over the full round
         }
         rotationAngle += spinSpeed * dt
         if (rotationAngle >= 360) rotationAngle -= 360
 
         // Handle phases
         if (state.gamePhase === 2 && state.potatoHolderId) {
-            // Active Phase: Attach potato to the holder's head name tag anchor
-            AvatarAttach.createOrReplace(potatoEntity, {
+            // Active Phase: attach anchor, update oval shape + heat colour
+            AvatarAttach.createOrReplace(potatoAnchor, {
                 avatarId: state.potatoHolderId,
                 anchorPointId: AvatarAnchorPointType.AAPT_NAME_TAG
             })
 
-            // Pulse scale based on time status (faster pulsing when burning)
+            // Heat: always 0 at round start, always 1 at round end — proportional to initialRoundTimer
+            const maxTimer = state.initialRoundTimer > 0 ? state.initialRoundTimer : 60
+            const heat = 1 - Math.min(1, state.roundTimer / maxTimer)
+            const g = 1 - heat
+
+            // Pulse scale — faster when burning
             const pulseFrequency = state.roundTimer < 10 ? 8 : (state.roundTimer < 20 ? 4 : 2)
-            const scaleFactor = 1.0 + Math.sin(Date.now() / 1000 * Math.PI * pulseFrequency) * 0.18
+            const scaleFactor = 1.0 + Math.sin(Date.now() / 1000 * Math.PI * pulseFrequency) * 0.15
+
+            // Oval grows slightly as it heats up (1.0× at cool → 1.3× at full burn)
+            const heatScale = 1.0 + heat * 0.3
 
             Transform.createOrReplace(potatoEntity, {
-                position: Vector3.create(0, 0.45, 0), // Positioned offset slightly above the name tag
-                scale: Vector3.create(0.4 * scaleFactor, 0.3 * scaleFactor, 0.3 * scaleFactor), // Oval shape
+                parent: potatoAnchor,
+                position: Vector3.create(0, 0.1, 0),
+                scale: Vector3.create(0.28 * scaleFactor * heatScale, 0.20 * scaleFactor * heatScale, 0.28 * scaleFactor * heatScale),
                 rotation: Quaternion.fromAngleAxis(rotationAngle, Vector3.Up())
             })
 
-            // Color transitions: Warm (soft golden amber brown) -> Hot (orange) -> Burning (bright red glow)
-            let albedo = Color4.fromHexString("#6E473B") // Lighter, richer brown
-            let emissive = Color4.fromHexString("#D4A373") // Soft golden amber glow
-            let emissiveIntensity = 0.6 // Luminous even in Warm phase
-
-            if (state.roundTimer < 10) {
-                albedo = Color4.fromHexString("#FF3B30")
-                emissive = Color4.Red()
-                emissiveIntensity = 2.5
-            } else if (state.roundTimer < 20) {
-                albedo = Color4.fromHexString("#FF9500")
-                emissive = Color4.fromHexString("#FF9500")
-                emissiveIntensity = 1.2
-            }
+            // Cap emissive at 2.0 — DCL over-blooms above ~2.5, making mesh invisible
+            const emissiveIntensity = 1.0 + heat * 1.0
 
             Material.setPbrMaterial(potatoEntity, {
-                albedoColor: albedo,
-                roughness: 0.9,
-                metallic: 0.1,
-                emissiveColor: emissive,
-                emissiveIntensity: emissiveIntensity
+                albedoColor: Color4.create(1, g * 0.7 + 0.1, 0.05, 1),  // yellow → orange-red, never pure black
+                emissiveColor: Color4.create(1, g * 0.6, 0, 1),
+                emissiveIntensity: emissiveIntensity,
+                roughness: 0.5,
+                metallic: 0.05
             })
 
             localPlayerPlayedEmote = false
 
         } else if (state.gamePhase === 3 && state.potatoHolderId) {
-            // Explosion Phase: Expand potato rapidly to simulate a blast
-            AvatarAttach.createOrReplace(potatoEntity, {
+            // Explosion Phase: hide main oval, spray shrapnel chunks around the avatar
+            AvatarAttach.createOrReplace(potatoAnchor, {
                 avatarId: state.potatoHolderId,
                 anchorPointId: AvatarAnchorPointType.AAPT_NAME_TAG
             })
 
-            const progress = (5.0 - state.countdownTimer) / 5.0
-            const explosionScale = 0.4 + progress * 9.0 // Grow up to 9x scale
+            // Hide main oval during explosion
+            Transform.createOrReplace(potatoEntity, { parent: potatoAnchor, scale: Vector3.Zero() })
 
-            Transform.createOrReplace(potatoEntity, {
-                position: Vector3.create(0, 0.45, 0),
-                scale: Vector3.create(explosionScale, explosionScale, explosionScale),
-                rotation: Quaternion.fromAngleAxis(rotationAngle * 2, Vector3.Up())
-            })
+            const progress = (5.0 - state.countdownTimer) / 5.0  // 0→1 over 5s
+            const flight = Math.pow(Math.max(0, progress), 0.5)    // ease-out: burst fast, drift slow
+            const fade = Math.max(0, 1 - progress * 1.3)           // fade out before max distance
 
-            // Glowing yellow/white blast material
-            Material.setPbrMaterial(potatoEntity, {
-                albedoColor: Color4.fromHexString("#FFFFEE"),
-                roughness: 0.1,
-                metallic: 0.9,
-                emissiveColor: Color4.fromHexString("#FFCC00"),
-                emissiveIntensity: 6.0
-            })
+            for (let i = 0; i < NUM_CHUNKS; i++) {
+                const dir = chunkDirs[i]
+                const size = chunkSizes[i] * fade
+                Transform.createOrReplace(chunkEntities[i], {
+                    parent: potatoAnchor,
+                    position: Vector3.create(dir.x * flight, 0.1 + dir.y * flight, dir.z * flight),
+                    scale: Vector3.create(size, size, size),
+                    rotation: Quaternion.fromAngleAxis(rotationAngle * 4 + i * 26, Vector3.Up())
+                })
+            }
 
             // If the local player is the one who exploded, trigger a shrug/wave reaction
             const localPlayer = getPlayer()
@@ -775,14 +783,12 @@ export function main() {
             }
 
         } else {
-            // Lobby/Countdown: De-attach and hide potato underground
-            if (AvatarAttach.has(potatoEntity)) {
-                AvatarAttach.deleteFrom(potatoEntity)
+            // Lobby/Countdown: De-attach anchor, hide oval and all chunks
+            if (AvatarAttach.has(potatoAnchor)) AvatarAttach.deleteFrom(potatoAnchor)
+            Transform.createOrReplace(potatoEntity, { parent: potatoAnchor, scale: Vector3.Zero() })
+            for (let i = 0; i < NUM_CHUNKS; i++) {
+                Transform.createOrReplace(chunkEntities[i], { parent: potatoAnchor, scale: Vector3.Zero() })
             }
-            Transform.createOrReplace(potatoEntity, {
-                position: Vector3.create(8, -10, 8),
-                scale: Vector3.Zero()
-            })
             localPlayerPlayedEmote = false
         }
     }

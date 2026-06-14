@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "SG Clubhouse",
-    "description": "Decentraland's meeting spot for plant lovers.",
+    "title": "Hot Potato",
+    "description": "Don't get caught holding the Hot Potato! Pass it fast, jump to safety, and survive the random timer — or explode in a burst of potato chaos!",
     "favicon": "favicon_asset",
     "navmapThumbnail": "assets/scene/Images/thumbnail-2026-05-24 222210.png"
   },
@@ -14,8 +14,10 @@
   },
   "main": "bin/index.js",
   "tags": [
-    "education",
-    "social"
+    "game",
+    "social",
+    "multiplayer",
+    "hot potato"
   ],
   "scene": {
     "base": "-134,-9",
@@ -59,7 +61,7 @@
   },
   "creator": "",
   "skyboxConfig": {
-    "fixedTime": 30000
+    "fixedTime": 18000
   },
   "source": {
     "origin": "SDK7",
